@@ -16,8 +16,13 @@ jobs:
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -26,21 +31,24 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Get dependencies
-        run: flutter pub get
+      - name: Prepare Android dependencies
+        run: make android-apk-install-deps
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
-          accept-android-sdk-licenses: true
+      - name: Prepare Android
+        run: make android-apk-prepare
 
       - name: Build APK
-        run: flutter build apk --release
+        run: make android-apk-release
+
+      - name: Find APK files
+        run: |
+          find ./build -name "*.apk" -type f
+          ls -la ./build/app/outputs/flutter-apk/ || echo "no apk dir"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: zyrex-vpn-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: ./build/app/outputs/flutter-apk/*.apk
           retention-days: 30
+          if-no-files-found: warn
